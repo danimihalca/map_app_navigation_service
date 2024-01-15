@@ -1,13 +1,11 @@
-use http_client::HttpClient;
-
 fn f(c: &mut dyn http_client::HttpClient) {
     let request = http_client::http_utils::HttpRequest {
         request_type: http_client::http_utils::HttpRequestType::GET,
-        path: "www.a.com".to_string(),
+        path: "https://www.google.com".to_string(),
     };
 
-    let callback = |_response: http_client::http_utils::HttpResponse| {
-        println!("Callback");
+    let callback = |response: http_client::http_utils::HttpResponse| {
+        println!("{}", response.body);
     };
 
     let cbw = misc::CallbackWrapper::new(callback);
@@ -16,9 +14,7 @@ fn f(c: &mut dyn http_client::HttpClient) {
 }
 
 fn main() {
-    let mut c = http_client::HttpClientImpl::default();
+    let mut c = http_client::HttpClientImpl {};
 
     f(&mut c);
-
-    c.call();
 }

@@ -1,42 +1,47 @@
 pub mod http_utils;
 
-pub trait HttpClient<'a> {
+pub trait HttpClient {
     fn send_request(
         &mut self,
         request: &http_utils::HttpRequest,
-        callback: misc::CallbackWrapper<'a, http_utils::HttpResponse>,
+        callback: misc::CallbackWrapper<http_utils::HttpResponse>,
     );
-
-    fn call(&self);
 }
 
-#[derive(Default)]
-pub struct HttpClientImpl<'a> {
-    pub callback: misc::CallbackWrapper<'a, http_utils::HttpResponse>,
-}
+pub struct HttpClientImpl {}
 
-impl<'a> HttpClient<'a> for HttpClientImpl<'a> {
+impl HttpClient for HttpClientImpl {
     fn send_request(
         &mut self,
         request: &http_utils::HttpRequest,
-        callback: misc::CallbackWrapper<'a, http_utils::HttpResponse>,
+        callback: misc::CallbackWrapper<http_utils::HttpResponse>,
     ) {
-        self.callback = callback;
-    }
-
-    fn call(&self) {
-        let resp = http_utils::HttpResponse {
-            body: "aaa".to_string(),
-            status: http_utils::HttpResponseStatus::Ok200,
-        };
-
-        match &self.callback.callback {
-            Some(callbackBox) => {
-                callbackBox(resp);
-            }
-            None => {
-                println!("No callback set");
+        let request_builder: reqwest::blocking::RequestBuilder;
+        {
+            let client = reqwest::blocking::Client::new();
+            match request.request_type {
+                http_utils::HttpRequestType::GET => {
+                    request_builder = client.get(&request.path);
+                }
+                http_utils::HttpRequestType::POST => {
+                    request_builder = client.post(&request.path);
+                }
+                http_utils::HttpRequestType::PUT => {
+                    request_builder = client.put(&request.path);
+                }
+                http_utils::HttpRequestType::UPDATE => {
+                    request_builder = client.patch(&request.path);
+                }
             }
         }
+
+        let raw_response = request_builder.send().unwrap();
+
+        let response = http_utils::HttpResponse {
+            status: http_utils::HttpResponseStatus::Ok200, //TTODO: proper conversions
+            body: raw_response.text().unwrap(),
+        };
+
+        (callback.callback)(response);
     }
 }
