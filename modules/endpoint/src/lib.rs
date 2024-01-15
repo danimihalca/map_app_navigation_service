@@ -1,0 +1,3 @@
+struct NavigationEndpoint {}
+
+impl NavigationEndpoint {}
