@@ -1,14 +1,5 @@
-pub fn add(left: usize, right: usize) -> usize {
-    left + right
-}
+trait NavigationService {}
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+struct NavigationServiceImpl {}
 
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
-}
+impl NavigationService for NavigationServiceImpl {}
