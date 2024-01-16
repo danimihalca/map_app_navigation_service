@@ -1,10 +1,3 @@
-use axum;
-
-#[derive(serde::Deserialize)]
-struct Directions {
-    coordinates: String,
-}
-
 #[derive(Clone)]
 struct AppState {
     service: std::sync::Arc<std::sync::Mutex<dyn service::NavigationService + Send + Sync>>,
@@ -12,9 +5,9 @@ struct AppState {
 
 async fn directions(
     axum::extract::State(state): axum::extract::State<AppState>,
-    axum::Json(payload): axum::Json<Directions>,
-) {
-    let coordinates_str = payload.coordinates.split(";");
+    axum::extract::Path(coordinates): axum::extract::Path<String>,
+) -> String {
+    let coordinates_str = coordinates.split(";");
     let mut output_coordinates = Vec::<service::service_utils::Coordinate>::new();
     for c in coordinates_str {
         let params: Vec<&str> = c.split(",").collect();
@@ -25,15 +18,19 @@ async fn directions(
         })
     }
 
+    let mut result = String::default();
+
     let callback = |response: String| {
-        println!("{}", response);
-        //TODO: send output
+        result = response;
     };
+
     let cbw: misc::CallbackWrapper<'_, _> = misc::CallbackWrapper::new(callback);
 
     let mut service = state.service.lock().expect("mutex was poisoned");
 
     service.directions(output_coordinates, cbw);
+
+    result
 }
 
 #[tokio::main]
@@ -60,7 +57,10 @@ async fn main() {
     };
 
     let app = axum::Router::new()
-        .route("/directions", axum::routing::get(directions))
+        .route(
+            "/directions/coordinates=:coordinates",
+            axum::routing::get(directions),
+        )
         .with_state(state);
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();

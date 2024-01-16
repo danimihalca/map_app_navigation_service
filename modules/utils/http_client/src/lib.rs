@@ -14,7 +14,7 @@ impl HttpClient for HttpClientImpl {
     fn send_request(
         &mut self,
         request: &http_utils::HttpRequest,
-        callback: misc::CallbackWrapper<http_utils::HttpResponse>,
+        mut callback: misc::CallbackWrapper<http_utils::HttpResponse>,
     ) {
         let output_request: ureq::Request;
         {

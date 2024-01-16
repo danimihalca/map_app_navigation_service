@@ -32,7 +32,7 @@ impl NavigationService for NavigationServiceImpl {
     fn directions(
         self: &mut Self,
         coordinates: Vec<service_utils::Coordinate>,
-        callback: misc::CallbackWrapper<String>,
+        mut callback: misc::CallbackWrapper<String>,
     ) {
         self.path_builder.reset();
 

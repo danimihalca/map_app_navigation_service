@@ -11,4 +11,4 @@ http_client = { path = "../modules/utils/http_client" }
 misc = { path = "../modules/utils/misc" }
 serde = { version = "1.0.195", features = ["serde_derive"] }
 service = { path = "../modules/service" }
-tokio = "1.35.1"
+tokio = { version = "1.35.1", features = ["rt", "rt-multi-thread"] }
