@@ -12,14 +12,14 @@ pub trait NavigationService {
 }
 
 pub struct NavigationServiceImpl {
-    http_client: Box<dyn http_client::HttpClient>,
-    path_builder: Box<dyn path_builder::PathBuilder>,
+    http_client: Box<dyn http_client::HttpClient + Send + Sync>,
+    path_builder: Box<dyn path_builder::PathBuilder + Send + Sync>,
 }
 
 impl NavigationServiceImpl {
     pub fn new(
-        http_client: Box<dyn http_client::HttpClient>,
-        path_builder: Box<dyn path_builder::PathBuilder>,
+        http_client: Box<dyn http_client::HttpClient + Send + Sync>,
+        path_builder: Box<dyn path_builder::PathBuilder + Send + Sync>,
     ) -> Self {
         Self {
             http_client,

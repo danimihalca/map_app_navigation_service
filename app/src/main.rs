@@ -1,40 +1,68 @@
-use std::env;
+use axum;
 
-fn main() {
+#[derive(serde::Deserialize)]
+struct Directions {
+    coordinates: String,
+}
+
+#[derive(Clone)]
+struct AppState {
+    service: std::sync::Arc<std::sync::Mutex<dyn service::NavigationService + Send + Sync>>,
+}
+
+async fn directions(
+    axum::extract::State(state): axum::extract::State<AppState>,
+    axum::Json(payload): axum::Json<Directions>,
+) {
+    let coordinates_str = payload.coordinates.split(";");
+    let mut output_coordinates = Vec::<service::service_utils::Coordinate>::new();
+    for c in coordinates_str {
+        let params: Vec<&str> = c.split(",").collect();
+
+        output_coordinates.push(service::service_utils::Coordinate {
+            longitude: params[0].parse::<f32>().unwrap(),
+            latitude: params[1].parse::<f32>().unwrap(),
+        })
+    }
+
+    let callback = |response: String| {
+        println!("{}", response);
+        //TODO: send output
+    };
+    let cbw: misc::CallbackWrapper<'_, _> = misc::CallbackWrapper::new(callback);
+
+    let mut service = state.service.lock().expect("mutex was poisoned");
+
+    service.directions(output_coordinates, cbw);
+}
+
+#[tokio::main]
+async fn main() {
     let token: String;
 
-    if let Some(arg1) = env::args().nth(1) {
+    if let Some(arg1) = std::env::args().nth(1) {
         token = arg1;
     } else {
         panic!("Missing token argument");
     }
 
-    let http_client: Box<dyn http_client::HttpClient> =
-        Box::<http_client::HttpClientImpl>::default();
+    let http_client = Box::<http_client::HttpClientImpl>::default();
 
-    let path_builder: Box<dyn service::path_builder::PathBuilder> = Box::new(
-        service::path_builder::MapboxDirectionsPathBuilder::new(token.to_string()),
-    );
+    let path_builder = Box::new(service::path_builder::MapboxDirectionsPathBuilder::new(
+        token.to_string(),
+    ));
 
-    let mut navigation_service: Box<dyn service::NavigationService> = Box::new(
-        service::NavigationServiceImpl::new(http_client, path_builder),
-    );
-
-    let callback = |response: String| {
-        println!("{}", response);
+    let state = AppState {
+        service: std::sync::Arc::new(std::sync::Mutex::new(service::NavigationServiceImpl::new(
+            http_client,
+            path_builder,
+        ))),
     };
-    let cbw = misc::CallbackWrapper::new(callback);
 
-    let coordinates = vec![
-        service::service_utils::Coordinate {
-            longitude: -122.42,
-            latitude: 37.78,
-        },
-        service::service_utils::Coordinate {
-            longitude: -77.03,
-            latitude: 38.91,
-        },
-    ];
+    let app = axum::Router::new()
+        .route("/directions", axum::routing::get(directions))
+        .with_state(state);
 
-    navigation_service.directions(coordinates, cbw);
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
+    axum::serve(listener, app).await.unwrap();
 }
