@@ -23,6 +23,12 @@ on:
         default: true
         type: boolean
 
+jobs:
+  build:
+    name: Build service
+    permissions: write-all
+    runs-on: ubuntu-latest
+
     steps:
       - name: "Set configuration environment variables"
         env:
@@ -49,21 +55,19 @@ on:
       - name: Check out code
         uses: actions/checkout@v4
         with:
-          submodules: true
-          token: ${{ secrets.BASE_ENV_TOKEN }}
           ref: ${{ env.CONFIG_CHECKOUT_SOURCE }}
 
       - name: Build Release
         if: ${{ env.CONFIG_BUILD_RELEASE == 'true' }}
         run: |
-          docker build --build-arg="BASE_ENV=$BASE_ENV" --target build_release .
-          docker build --build-arg="BASE_ENV=$BASE_ENV" --target get_release_build . -o output/buildRel
+          docker build --target build_release .
+          docker build --target get_release_build . -o output/buildRel
 
       - name: Publish Release
         if: ${{ env.CONFIG_BUILD_RELEASE == 'true' }}
         uses: actions/upload-artifact@v3
         with:
-          name: map-app-search-service-rel
+          name: map-app-navigation-service-rel
           path: output/buildRel
 
       - name: "Set release image name"
@@ -71,10 +75,10 @@ on:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         run: |
           IMAGE_TAG=`git log -1 '--format=format:%H'`
-          [ "$CONFIG_DEPLOY_TO_REPOSITORY" == "true" ] || [ "$CONFIG_DEPLOY_TO_CLUSTER" == "true" ] && IMAGE_NAME="$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" || IMAGE_NAME="dummy_image:$IMAGE_TAG"
+          IMAGE_NAME="dummy_image:$IMAGE_TAG"
           echo "IMAGE_NAME=$IMAGE_NAME" >> $GITHUB_ENV
 
       - name: Build release image
         if: ${{ env.CONFIG_BUILD_RELEASE_IMAGE == 'true' }}
         run: |
-          docker build --build-arg="BASE_ENV=$BASE_ENV" --target runner -t $IMAGE_NAME .
+          docker build --target runner -t $IMAGE_NAME .
