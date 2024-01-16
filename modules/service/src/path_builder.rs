@@ -1,8 +1,8 @@
 use crate::service_utils;
 
 pub trait PathBuilder {
-    fn withBasePath(self: &mut Self, basePath: String);
-    fn withCoordinates(self: &mut Self, coordinates: Vec<service_utils::Coordinate>);
+    fn with_base_path(self: &mut Self, base_path: String);
+    fn with_coordinates(self: &mut Self, coordinates: Vec<service_utils::Coordinate>);
     fn build(self: &mut Self) -> String;
     fn reset(self: &mut Self);
 }
@@ -24,11 +24,11 @@ impl MapboxDirectionsPathBuilder {
 }
 
 impl PathBuilder for MapboxDirectionsPathBuilder {
-    fn withBasePath(self: &mut Self, base_path: String) {
+    fn with_base_path(self: &mut Self, base_path: String) {
         self.base_path = base_path;
     }
 
-    fn withCoordinates(self: &mut Self, coordinates: Vec<service_utils::Coordinate>) {
+    fn with_coordinates(self: &mut Self, coordinates: Vec<service_utils::Coordinate>) {
         self.coordinates = coordinates;
     }
 

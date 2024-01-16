@@ -37,8 +37,8 @@ impl NavigationService for NavigationServiceImpl {
         self.path_builder.reset();
 
         self.path_builder
-            .withBasePath("https://api.mapbox.com/directions/v5/mapbox/driving".to_string());
-        self.path_builder.withCoordinates(coordinates);
+            .with_base_path("https://api.mapbox.com/directions/v5/mapbox/driving".to_string());
+        self.path_builder.with_coordinates(coordinates);
 
         let request = http_utils::HttpRequest {
             path: self.path_builder.build(),
