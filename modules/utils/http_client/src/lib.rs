@@ -8,7 +8,17 @@ pub trait HttpClient {
     );
 }
 
-pub struct HttpClientImpl {}
+pub struct HttpClientImpl {
+    client: reqwest::blocking::Client,
+}
+
+impl Default for HttpClientImpl {
+    fn default() -> Self {
+        Self {
+            client: reqwest::blocking::Client::new(),
+        }
+    }
+}
 
 impl HttpClient for HttpClientImpl {
     fn send_request(
@@ -18,19 +28,18 @@ impl HttpClient for HttpClientImpl {
     ) {
         let request_builder: reqwest::blocking::RequestBuilder;
         {
-            let client = reqwest::blocking::Client::new();
             match request.request_type {
                 http_utils::HttpRequestType::GET => {
-                    request_builder = client.get(&request.path);
+                    request_builder = self.client.get(&request.path);
                 }
                 http_utils::HttpRequestType::POST => {
-                    request_builder = client.post(&request.path);
+                    request_builder = self.client.post(&request.path);
                 }
                 http_utils::HttpRequestType::PUT => {
-                    request_builder = client.put(&request.path);
+                    request_builder = self.client.put(&request.path);
                 }
                 http_utils::HttpRequestType::UPDATE => {
-                    request_builder = client.patch(&request.path);
+                    request_builder = self.client.patch(&request.path);
                 }
             }
         }
