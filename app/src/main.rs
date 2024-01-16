@@ -46,7 +46,7 @@ async fn main() {
         panic!("Missing token argument");
     }
 
-    let http_client = Box::<http_client::HttpClientImpl>::default();
+    let http_client = Box::new(http_client::HttpClientImpl {});
 
     let path_builder = Box::new(service::path_builder::MapboxDirectionsPathBuilder::new(
         token.to_string(),
