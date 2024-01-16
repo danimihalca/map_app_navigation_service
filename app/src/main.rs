@@ -1,24 +1,23 @@
-use http_client::HttpClient;
+#[tokio::main]
+async fn main() {
+    let token: String;
 
-fn f(c: &mut dyn http_client::HttpClient) {
-    let request = http_client::http_utils::HttpRequest {
-        request_type: http_client::http_utils::HttpRequestType::GET,
-        path: "www.a.com".to_string(),
-    };
+    if let Some(arg1) = std::env::args().nth(1) {
+        token = arg1;
+    } else {
+        panic!("Missing token argument");
+    }
 
-    let callback = |_response: http_client::http_utils::HttpResponse| {
-        println!("Callback");
-    };
+    let http_client = Box::new(http_client::HttpClientImpl {});
 
-    let cbw = misc::CallbackWrapper::new(callback);
+    let path_builder = Box::new(service::path_builder::MapboxDirectionsPathBuilder::new(
+        token.to_string(),
+    ));
 
-    c.send_request(&request, cbw);
-}
+    let service = std::sync::Arc::new(std::sync::Mutex::new(service::NavigationServiceImpl::new(
+        http_client,
+        path_builder,
+    )));
 
-fn main() {
-    let mut c = http_client::HttpClientImpl::default();
-
-    f(&mut c);
-
-    c.call();
+    endpoint::run(service).await;
 }

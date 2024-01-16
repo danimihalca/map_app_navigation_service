@@ -6,5 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-http_client={path = "../modules/utils/http_client"}
-misc={path = "../modules/utils/misc"}
+http_client = { path = "../modules/utils/http_client" }
+service = { path = "../modules/service" }
+endpoint = { path = "../modules/endpoint" }
+tokio = { version = "1.35.1", features = ["rt-multi-thread"] }

@@ -1,42 +1,46 @@
 pub mod http_utils;
 
-pub trait HttpClient<'a> {
+pub trait HttpClient {
     fn send_request(
         &mut self,
         request: &http_utils::HttpRequest,
-        callback: misc::CallbackWrapper<'a, http_utils::HttpResponse>,
+        callback: misc::CallbackWrapper<http_utils::HttpResponse>,
     );
-
-    fn call(&self);
 }
 
-#[derive(Default)]
-pub struct HttpClientImpl<'a> {
-    pub callback: misc::CallbackWrapper<'a, http_utils::HttpResponse>,
-}
+pub struct HttpClientImpl {}
 
-impl<'a> HttpClient<'a> for HttpClientImpl<'a> {
+impl HttpClient for HttpClientImpl {
     fn send_request(
         &mut self,
         request: &http_utils::HttpRequest,
-        callback: misc::CallbackWrapper<'a, http_utils::HttpResponse>,
+        mut callback: misc::CallbackWrapper<http_utils::HttpResponse>,
     ) {
-        self.callback = callback;
-    }
-
-    fn call(&self) {
-        let resp = http_utils::HttpResponse {
-            body: "aaa".to_string(),
-            status: http_utils::HttpResponseStatus::Ok200,
-        };
-
-        match &self.callback.callback {
-            Some(callbackBox) => {
-                callbackBox(resp);
-            }
-            None => {
-                println!("No callback set");
+        let output_request: ureq::Request;
+        {
+            match request.request_type {
+                http_utils::HttpRequestType::GET => {
+                    output_request = ureq::get(&request.path);
+                }
+                http_utils::HttpRequestType::POST => {
+                    output_request = ureq::post(&request.path);
+                }
+                http_utils::HttpRequestType::PUT => {
+                    output_request = ureq::put(&request.path);
+                }
+                http_utils::HttpRequestType::UPDATE => {
+                    output_request = ureq::patch(&request.path);
+                }
             }
         }
+
+        let raw_response = output_request.call().unwrap();
+
+        let response = http_utils::HttpResponse {
+            status: http_utils::HttpResponseStatus::Ok200, //TTODO: proper conversions
+            body: raw_response.into_string().unwrap(),
+        };
+
+        (callback.callback)(response);
     }
 }
