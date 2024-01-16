@@ -27,4 +27,4 @@ RUN chmod 755 /workspace/map_app_navigation_service_bin
 COPY entrypoint.sh /workspace/entrypoint.sh
 RUN chmod +x /workspace/entrypoint.sh
 
-ENTRYPOINT /workspace/entrypoint.sh
+ENTRYPOINT ["/workspace/entrypoint.sh"]
