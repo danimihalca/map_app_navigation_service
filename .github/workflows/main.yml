@@ -22,12 +22,24 @@ on:
         required: true
         default: true
         type: boolean
+      deploy_image_to_repository:
+        description: "Deploy image to repository (req. build release image)"
+        required: true
+        default: false
+        type: boolean
+      deploy_image_to_cluster:
+        description: "Deploy image to cluster (req. deploy/predeployed image to repository)"
+        required: true
+        default: false
+        type: boolean
 
 jobs:
   build:
     name: Build service
     permissions: write-all
     runs-on: ubuntu-latest
+    env:
+      ECR_REPOSITORY: map-app-navigation-service
 
     steps:
       - name: "Set configuration environment variables"
@@ -39,15 +51,21 @@ jobs:
             export CONFIG_CHECKOUT_SOURCE=${{ inputs.checkout_source }}
             export CONFIG_BUILD_RELEASE=${{ inputs.build_release }}
             export CONFIG_BUILD_RELEASE_IMAGE=${{ inputs.build_release_image }}
+            export CONFIG_DEPLOY_TO_REPOSITORY=${{ inputs.deploy_image_to_repository }}
+            export CONFIG_DEPLOY_TO_CLUSTER=${{ inputs.deploy_image_to_cluster }}
           else
             export CONFIG_CHECKOUT_SOURCE=$GITHUB_SHA
             export CONFIG_BUILD_RELEASE=true
             export CONFIG_BUILD_RELEASE_IMAGE=true
+            export CONFIG_DEPLOY_TO_REPOSITORY=$DEPLOY
+            export CONFIG_DEPLOY_TO_CLUSTER=$DEPLOY
           fi
 
           echo "CONFIG_CHECKOUT_SOURCE=$CONFIG_CHECKOUT_SOURCE" >> $GITHUB_ENV
           echo "CONFIG_BUILD_RELEASE=$CONFIG_BUILD_RELEASE" >> $GITHUB_ENV
           echo "CONFIG_BUILD_RELEASE_IMAGE=$CONFIG_BUILD_RELEASE_IMAGE" >> $GITHUB_ENV
+          echo "CONFIG_DEPLOY_TO_REPOSITORY=$CONFIG_DEPLOY_TO_REPOSITORY" >> $GITHUB_ENV
+          echo "CONFIG_DEPLOY_TO_CLUSTER=$CONFIG_DEPLOY_TO_CLUSTER" >> $GITHUB_ENV
 
           echo "Using configuration:"
           cat $GITHUB_ENV
@@ -70,15 +88,53 @@ jobs:
           name: map-app-navigation-service-rel
           path: output/buildRel
 
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@0e613a0980cbf65ed5b322eb7a1e075d28913a83
+        if: ${{ env.CONFIG_DEPLOY_TO_REPOSITORY == 'true' || env.CONFIG_DEPLOY_TO_CLUSTER == 'true' }}
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: eu-central-1
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@62f4f872db3836360b72999f4b87f1ff13310f3a
+        if: ${{ env.CONFIG_DEPLOY_TO_REPOSITORY == 'true' || env.CONFIG_DEPLOY_TO_CLUSTER == 'true' }}
+
       - name: "Set release image name"
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         run: |
           IMAGE_TAG=`git log -1 '--format=format:%H'`
-          IMAGE_NAME="dummy_image:$IMAGE_TAG"
+          [ "$CONFIG_DEPLOY_TO_REPOSITORY" == "true" ] || [ "$CONFIG_DEPLOY_TO_CLUSTER" == "true" ] && IMAGE_NAME="$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" || IMAGE_NAME="dummy_image:$IMAGE_TAG"
           echo "IMAGE_NAME=$IMAGE_NAME" >> $GITHUB_ENV
 
       - name: Build release image
         if: ${{ env.CONFIG_BUILD_RELEASE_IMAGE == 'true' }}
         run: |
           docker build --target runner -t $IMAGE_NAME .
+
+      - name: Push image to ECR
+        if: ${{ env.CONFIG_DEPLOY_TO_REPOSITORY == 'true' }}
+        run: |
+          docker push $IMAGE_NAME
+
+      - name: Install kubectl
+        uses: azure/setup-kubectl@v2.0
+        if: ${{ env.CONFIG_DEPLOY_TO_CLUSTER == 'true' }}
+        with:
+          version: latest
+
+      - name: Deploy to K8s
+        if: ${{ env.CONFIG_DEPLOY_TO_CLUSTER == 'true' }}
+        run: |
+          echo "Deploying image: $IMAGE_NAME"
+
+          aws eks update-kubeconfig --name MapApp --region eu-central-1
+
+          kubectl delete secret mapbox-access --ignore-not-found
+          kubectl create secret generic mapbox-access --from-literal=token=${{ secrets.MAPBOX_TOKEN }}
+
+          cat k8s_service.tmp.yml | envsubst > k8s_service.yml
+
+          kubectl apply -f k8s_service.yml
