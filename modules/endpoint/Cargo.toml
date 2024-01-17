@@ -7,6 +7,8 @@ edition = "2021"
 
 [dependencies]
 axum = "0.7.4"
+http = "1.0.0"
 misc = { path = "../utils/misc" }
 service = { path = "../service" }
 tokio = "1.35.1"
+tower-http = { version = "0.5.1", features = ["cors"] }
