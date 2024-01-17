@@ -8,11 +8,17 @@ pub async fn run(
 ) {
     let state = AppState { service };
 
+    let cors = tower_http::cors::CorsLayer::new()
+        .allow_methods([http::Method::GET])
+        .allow_origin(tower_http::cors::Any)
+        .allow_headers([http::header::CONTENT_TYPE]);
+
     let app: axum::Router = axum::Router::new()
         .route(
             "/directions/coordinates=:coordinates",
             axum::routing::get(directions),
         )
+        .layer(cors)
         .with_state(state);
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
