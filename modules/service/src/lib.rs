@@ -39,6 +39,10 @@ impl NavigationService for NavigationServiceImpl {
         self.path_builder
             .with_base_path("https://api.mapbox.com/directions/v5/mapbox/driving".to_string());
         self.path_builder.with_coordinates(coordinates);
+        self.path_builder
+            .with_parameter("steps".to_string(), "true".to_string());
+        self.path_builder
+            .with_parameter("geometries".to_string(), "geojson".to_string());
 
         let request = http_utils::HttpRequest {
             path: self.path_builder.build(),
