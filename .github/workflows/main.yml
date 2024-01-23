@@ -12,6 +12,16 @@ on:
         required: true
         default: "main"
         type: string
+      build_debug:
+        description: "Build debug"
+        required: true
+        default: false
+        type: boolean
+      run_tests:
+        description: "Run tests"
+        required: true
+        default: false
+        type: boolean
       build_release:
         description: "Build release"
         required: true
@@ -49,12 +59,16 @@ jobs:
           if [[ $GITHUB_EVENT_NAME == 'workflow_dispatch' ]]; then
             #TODO: allow only owner
             export CONFIG_CHECKOUT_SOURCE=${{ inputs.checkout_source }}
+            export CONFIG_BUILD_DEBUG=${{ inputs.build_debug }}
+            export CONFIG_RUN_TESTS=${{ inputs.run_tests }}
             export CONFIG_BUILD_RELEASE=${{ inputs.build_release }}
             export CONFIG_BUILD_RELEASE_IMAGE=${{ inputs.build_release_image }}
             export CONFIG_DEPLOY_TO_REPOSITORY=${{ inputs.deploy_image_to_repository }}
             export CONFIG_DEPLOY_TO_CLUSTER=${{ inputs.deploy_image_to_cluster }}
           else
             export CONFIG_CHECKOUT_SOURCE=$GITHUB_SHA
+            export CONFIG_BUILD_DEBUG=true
+            export CONFIG_RUN_TESTS=true
             export CONFIG_BUILD_RELEASE=true
             export CONFIG_BUILD_RELEASE_IMAGE=true
             export CONFIG_DEPLOY_TO_REPOSITORY=$DEPLOY
@@ -62,6 +76,8 @@ jobs:
           fi
 
           echo "CONFIG_CHECKOUT_SOURCE=$CONFIG_CHECKOUT_SOURCE" >> $GITHUB_ENV
+          echo "CONFIG_BUILD_DEBUG=$CONFIG_BUILD_DEBUG" >> $GITHUB_ENV
+          echo "CONFIG_RUN_TESTS=$CONFIG_RUN_TESTS" >> $GITHUB_ENV
           echo "CONFIG_BUILD_RELEASE=$CONFIG_BUILD_RELEASE" >> $GITHUB_ENV
           echo "CONFIG_BUILD_RELEASE_IMAGE=$CONFIG_BUILD_RELEASE_IMAGE" >> $GITHUB_ENV
           echo "CONFIG_DEPLOY_TO_REPOSITORY=$CONFIG_DEPLOY_TO_REPOSITORY" >> $GITHUB_ENV
@@ -74,6 +90,16 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{ env.CONFIG_CHECKOUT_SOURCE }}
+
+      - name: Build Debug
+        if: ${{ env.CONFIG_BUILD_DEBUG == 'true' }}
+        run: |
+          docker build --target build_debug .
+
+      - name: Run tests
+        if: ${{ env.CONFIG_RUN_TESTS == 'true' }}
+        run: |
+          docker build --target run_tests .
 
       - name: Build Release
         if: ${{ env.CONFIG_BUILD_RELEASE == 'true' }}
