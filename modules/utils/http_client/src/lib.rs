@@ -1,10 +1,11 @@
 pub mod http_utils;
 
+#[mockall::automock]
 pub trait HttpClient {
-    fn send_request(
+    fn send_request<'a>(
         &mut self,
         request: &http_utils::HttpRequest,
-        callback: misc::CallbackWrapper<http_utils::HttpResponse>,
+        callback: misc::CallbackWrapper<'a, http_utils::HttpResponse>,
     );
 }
 

@@ -57,3 +57,100 @@ impl NavigationService for NavigationServiceImpl {
             .send_request(&request, misc::CallbackWrapper::new(http_client_callback));
     }
 }
+
+#[cfg(test)]
+mod test {
+
+    use misc::CallbackWrapper;
+
+    use super::*;
+
+    #[test]
+    fn basic_call() {
+        let mut mock_path_builder = Box::<path_builder::MockPathBuilder>::default();
+        let mut mock_http_client = Box::<http_client::MockHttpClient>::default();
+
+        mock_path_builder.expect_reset().return_const(());
+        mock_path_builder
+            .expect_with_base_path()
+            .with(mockall::predicate::eq(
+                "https://api.mapbox.com/directions/v5/mapbox/driving".to_string(),
+            ))
+            .return_const(());
+        mock_path_builder
+            .expect_with_coordinates()
+            .with(mockall::predicate::eq(vec![
+                service_utils::Coordinate {
+                    longitude: 5.5,
+                    latitude: 6.6,
+                },
+                service_utils::Coordinate {
+                    longitude: 7.7,
+                    latitude: 8.8,
+                },
+            ]))
+            .return_const(());
+
+        mock_path_builder
+            .expect_with_parameter()
+            .withf(|key, value| key == "geometries" && value == "geojson")
+            .return_const(());
+
+        mock_path_builder
+            .expect_with_parameter()
+            .withf(|key, value| key == "steps" && value == "true")
+            .return_const(());
+
+        mock_path_builder
+            .expect_build()
+            .once()
+            .return_const("<DUMMY_PATH>");
+
+        mock_http_client
+            .expect_send_request()
+            .once()
+            .withf_st(|request, _| {
+                request.path == "<DUMMY_PATH>"
+                    && request.request_type == http_utils::HttpRequestType::GET
+            })
+            .returning_st(
+                |_request: &http_utils::HttpRequest,
+                 mut callback: CallbackWrapper<http_utils::HttpResponse>| {
+                    let response = http_utils::HttpResponse {
+                        status: http_utils::HttpResponseStatus::Ok200,
+                        body: "<BODY>".to_string(),
+                    };
+                    //Trigger received internal callback from service here, simulate a response
+                    (callback.callback)(response);
+                    ()
+                },
+            );
+
+        let mut service: NavigationServiceImpl =
+            NavigationServiceImpl::new(mock_http_client, mock_path_builder);
+
+        let mut callback_triggered = false;
+        let mut callback_response = String::default();
+        let callback = CallbackWrapper::new(|response| {
+            callback_triggered = true;
+            callback_response = response;
+        });
+
+        service.directions(
+            vec![
+                service_utils::Coordinate {
+                    longitude: 5.5,
+                    latitude: 6.6,
+                },
+                service_utils::Coordinate {
+                    longitude: 7.7,
+                    latitude: 8.8,
+                },
+            ],
+            callback,
+        );
+
+        assert!(callback_triggered);
+        assert_eq!(callback_response, "<BODY>")
+    }
+}

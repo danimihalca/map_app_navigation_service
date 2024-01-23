@@ -8,6 +8,12 @@ ARG SRC_PATH
 COPY . ${SRC_PATH}
 WORKDIR ${SRC_PATH}
 
+FROM base_devel_env as build_debug
+RUN cargo build
+
+FROM build_debug as run_tests
+RUN cargo test
+
 FROM base_devel_env as build_release
 RUN cargo build --release
 
