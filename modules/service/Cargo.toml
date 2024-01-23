@@ -8,3 +8,4 @@ edition = "2021"
 [dependencies]
 misc = { path = "../utils/misc" }
 http_client = { path = "../utils/http_client" }
+mockall = "0.12.1"
