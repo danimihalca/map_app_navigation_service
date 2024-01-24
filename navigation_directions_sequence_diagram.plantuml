@@ -1,0 +1,50 @@
+@startuml Navigation Directions Sequence Diagram
+
+actor Client
+
+participant endpoint
+participant service.NavigationServiceImpl
+participant service.MapBoxDirectionsPathBuilder
+participant httpClientImpl.HttpClientImpl
+
+== Receiving request and forwarding ==
+
+Client -> endpoint ++ : directions()
+
+    endpoint -> service.NavigationServiceImpl ++ : directions()
+
+        service.NavigationServiceImpl -> service.MapBoxDirectionsPathBuilder ++ : reset()
+        return
+
+        service.NavigationServiceImpl -> service.MapBoxDirectionsPathBuilder ++ : with_base_path()
+        return
+
+        service.NavigationServiceImpl -> service.MapBoxDirectionsPathBuilder ++ : with_coordinates()
+        return
+
+        service.NavigationServiceImpl -> service.MapBoxDirectionsPathBuilder ++ : with_parameter()
+        return
+
+        service.NavigationServiceImpl -> service.MapBoxDirectionsPathBuilder ++ : build()
+        return
+
+        service.NavigationServiceImpl -> http_client.HttpClientImpl ++ : send_request()
+
+            http_client.HttpClientImpl -> ureq.Request ++ : call()
+            return
+
+== Forwarding response ==
+
+            http_client.HttpClientImpl -> service.NavigationServiceImpl ++ : <callback>
+
+                service.NavigationServiceImpl -> endpoint ++ : <callback>
+                    note left
+                            Set result
+                    end note
+                return
+            return
+        return
+    return 
+return result
+
+@enduml
