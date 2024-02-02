@@ -146,8 +146,8 @@ jobs:
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         run: |
-          [ "$CONFIG_TARGET_CLOUD" == "AWS" ] && IMAGE_REGISTRY=$ECR_REGISTRY || IMAGE_REGISTRY="${{ secrets.REGISTRY_LOGIN_SERVER }}
-          "IMAGE_TAG=`git log -1 '--format=format:%H'`
+          [ "$CONFIG_TARGET_CLOUD" == "AWS" ] && IMAGE_REGISTRY=$ECR_REGISTRY || IMAGE_REGISTRY="${{ secrets.REGISTRY_LOGIN_SERVER }}"
+          IMAGE_TAG=`git log -1 '--format=format:%H'`
           [ "$CONFIG_DEPLOY_TO_REPOSITORY" == "true" ] || [ "$CONFIG_DEPLOY_TO_CLUSTER" == "true" ] && IMAGE_NAME="$IMAGE_REGISTRY/$IMAGE_REPOSITORY:$IMAGE_TAG" || IMAGE_NAME="dummy_image:$IMAGE_TAG"
           echo "IMAGE_NAME=$IMAGE_NAME" >> $GITHUB_ENV
 
