@@ -175,14 +175,21 @@ jobs:
         with:
           version: latest
 
-      - name: Deploy to K8s
+      - name: Set AWS cluster configuration 
         if: ${{ env.CONFIG_DEPLOY_TO_CLUSTER == 'true' && env.CONFIG_TARGET_CLOUD == 'AWS' }}
+        run: |
+          aws eks update-kubeconfig --name MapApp --region eu-central-1
+
+      - name: Set Azure cluster configuration 
+        if: ${{ env.CONFIG_DEPLOY_TO_CLUSTER == 'true' && env.CONFIG_TARGET_CLOUD == 'Azure' }}
+        run: |
+          az aks get-credentials --resource-group rg_MapApp --name MapAppAks
+
+      - name: Deploy to K8s
+        if: ${{ env.CONFIG_DEPLOY_TO_CLUSTER == 'true' }}
         run: |
           echo "Deploying image: $IMAGE_NAME"
 
-          aws eks update-kubeconfig --name MapApp --region eu-central-1
-
-          # TODO: separate step, above part AWS specific, below common (plus Azure configuration TBD)
           kubectl delete secret mapbox-access --ignore-not-found
           kubectl create secret generic mapbox-access --from-literal=token=${{ secrets.MAPBOX_TOKEN }}
 
