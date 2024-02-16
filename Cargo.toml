@@ -1,9 +1,0 @@
-[workspace]
-resolver = "2"
-
-members = [
-    "app",
-    "modules/endpoint",
-    "modules/service",
-    "modules/utils/http_client", "modules/utils/misc",
-]
